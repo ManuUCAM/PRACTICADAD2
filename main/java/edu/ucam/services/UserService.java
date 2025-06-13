@@ -177,7 +177,7 @@ public class UserService {
 		User usuarioEncontrado = tablaUsuarios.get(id);
 		
 		if (usuarioEncontrado == null)
-			return Response.status(404).entity("Error: Usuario no encontrado").build();
+			return Response.status(404).entity("Error: Usuario no encontrado").build(); 
 		
 		tablaUsuarios.remove(id, usuarioEncontrado);
 		

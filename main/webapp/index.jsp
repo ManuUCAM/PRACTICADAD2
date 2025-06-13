@@ -9,7 +9,7 @@
 	
 	<script type='text/javascript'>
 		
-		// PARA USERS
+		// -------- PARA USUARIOS --------
 		function load(id, username, passwd) {
 			
 			var entry = document.createElement('li');
@@ -26,9 +26,14 @@
 					success: function(result) {
 						document.getElementById(id).remove();
 					},
-					error: function() {
-						console.log('Error al borrar usuario');
-					}
+			    	error: function(jqXhr, textStatus, errorMessage){
+						errorMessage = jqXhr.responseText;
+						
+						if (!errorMessage)
+				    		console.log('Error desconocido al borrar usuario. Estado: ' + textStatus);
+						
+						alert(errorMessage);
+			    	}
 				})
 			}
 			
@@ -77,7 +82,7 @@
 						errorMessage = jqXhr.responseText;
 						
 						if (!errorMessage)
-				    		console.log('Error desconocido al dar de alta al usuario. Estado: ' + textStatus);
+				    		console.log('Error desconocido al dar de alta usuario. Estado: ' + textStatus);
 						
 						alert(errorMessage);
 					},
@@ -119,7 +124,7 @@
 						errorMessage = jqXhr.responseText;
 						
 						if (!errorMessage)
-				    		console.log('Error desconocido al dar de alta al usuario. Estado: ' + textStatus);
+				    		console.log('Error desconocido al modificar usuario. Estado: ' + textStatus);
 						
 						alert(errorMessage);
 					},
@@ -139,7 +144,140 @@
 			})
 			
 		})
-	
+		
+		// -------- PARA ESPACIOS --------
+		function loadEspacio(id, name) {
+			
+			var entry = document.createElement('li');
+			
+			var aBorrar = document.createElement('a');
+			var linkTextB = document.createTextNode('  [Borrar]');
+			
+			aBorrar.appendChild(linkTextB);
+			
+			aBorrar.onclick = function(){
+				$.ajax({
+					url: 'rest/espacio/borrar/' + id,
+					type: 'DELETE',
+					dataType: 'json',
+					success: function(result) {
+						document.getElementById(id).remove();
+					},
+			    	error: function(jqXhr, textStatus, errorMessage){
+						errorMessage = jqXhr.responseText;
+						
+						if (!errorMessage)
+				    		console.log('Error desconocido al borrar espacio. Estado: ' + textStatus);
+						
+						alert("Error: " + errorMessage);
+			    	}
+				});
+			};
+			
+			var aModificar = document.createElement('a');
+			var linkTextM = document.createTextNode('  [Modificar]');
+			
+			aModificar.appendChild(linkTextM);
+			aModificar.onclick = function() {
+				$('#idEspMod').val(id);
+				$('#nombreEspMod').val(name);	
+				$('#formEspMod').show();
+			};
+			
+			entry.id = id;
+			
+			entry.appendChild(document.createTextNode('(' + id + ') ' + name));
+			
+			entry.appendChild(aBorrar);
+			entry.appendChild(aModificar);
+			
+			$('#espacios').append(entry);
+		}
+		
+		$(document).ready(function() {
+	        $('#crearEspacio').click(function(){
+	        	
+	            var sendInfo = {
+	                name: $('#nombreEsp').val()
+	            };
+	            
+	            $.ajax({
+	                url: 'rest/espacio/alta',
+	                headers: {
+	                    'Accept': 'application/json',
+	                    'Content-Type': 'application/json'
+	                },
+	                type: 'POST',
+	                dataType: 'json',
+	                success: function(result) {
+	                    console.log(result.espacio);
+	                    loadEspacio(result.espacio.id, result.espacio.name);
+	                    $('#nombreEsp').val('');
+	                },
+			    	error: function(jqXhr, textStatus, errorMessage){
+						errorMessage = jqXhr.responseText;
+						
+						if (!errorMessage)
+				    		console.log('Error desconocido al dar de alta espacio. Estado: ' + textStatus);
+						
+						alert("Error: " + errorMessage);
+			    	},
+	                data: JSON.stringify(sendInfo)
+	            });
+	        });
+	        
+	        
+	        $('#modificarEspacio').click(function(){
+	            const id = $('#idEspMod').val();
+	            
+	            const sendInfo = {
+	                name: $('#nombreEspMod').val()
+	            };
+	            
+	            $.ajax({
+	                url: 'rest/espacio/modificar/' + id,
+	                type: 'PUT',
+	                headers: {
+	                    'Accept': 'application/json',
+	                    'Content-Type': 'application/json'
+	                },
+	                dataType: 'json',
+	                success: function(result){
+	                    alert('Espacio modificado exitosamente');
+	                    
+	                    document.getElementById(id).remove(); 
+	                    
+	                    loadEspacio(result.espacio.id, result.espacio.name);
+	                    
+	                    $('#formEspMod').hide();
+	                    
+	                    $('#idEspMod').val('');
+	                    $('#nombreEspMod').val('');
+	                },
+	                error: function(jqXHR, textStatus, errorThrown){
+	                    let errorMessage = jqXHR.responseText;
+	                    
+	                    if (!errorMessage) {
+	                        errorMessage = 'Error desconocido al modificar  espacio. Estado: ' + textStatus;
+	                    }
+	                    alert('Error: ' + errorMessage);
+	                },
+	                data: JSON.stringify(sendInfo)
+	            });
+	        });
+			
+			$.ajax({
+				url: 'rest/espacio/todos',	
+				type: 'GET',
+				dataType: 'json',
+				success: function(result) {
+					jQuery.each(result.espacios, function(i, val){
+						loadEspacio(val.id, val.name);
+					})
+				}
+			})
+		})
+		
 	</script>
 </head>
 <body>
@@ -169,6 +307,7 @@
 		<h3>Modificar espacio</h3>
 		<input type=hidden id='idEspMod'>
 		Nuevo nombre espacio <input type=text id='nombreEspMod'>
+		<button id='modificarEspacio'>Modificar espacio</button>
 	</div>
 	
 	<h3>Listado usuarios</h3>
