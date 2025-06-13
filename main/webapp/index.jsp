@@ -276,6 +276,150 @@
 					})
 				}
 			})
+			
+		})
+		
+		
+		// -------- PARA HUECOS --------
+        function loadHueco(id, idEspacio, fechaEntrada, fechaSalida) {
+            var entry = document.createElement('li');
+            var aBorrar = document.createElement('a');
+            
+            var linkTextB = document.createTextNode('  [Borrar]');
+            
+            aBorrar.appendChild(linkTextB);
+            
+            aBorrar.onclick = function() {
+                
+            	$.ajax({
+                    url: 'rest/hueco/borrar/' + id, // Este endpoint aún no lo hemos creado en HuecoService
+                    type: 'DELETE',
+                    dataType: 'json',
+                    success: function(result) {
+                        document.getElementById(id).remove();
+                    },
+			    	error: function(jqXhr, textStatus, errorMessage){
+						errorMessage = jqXhr.responseText;
+						
+						if (!errorMessage)
+				    		console.log('Error desconocido al borrar hueco. Estado: ' + textStatus);
+						
+						alert("Error: " + errorMessage);
+			    	}
+                });
+            };
+                                
+	       var aModificar = document.createElement('a');
+	       var linkTextM = document.createTextNode('  [Modificar]');
+	       
+	       aModificar.appendChild(linkTextM);
+	       
+	       aModificar.onclick = function() {
+	           
+	    	   $('#idHuecoMod').val(id);
+	           $('#idEspacioHuecoMod').val(idEspacio);
+	           $('#fechaEntradaHuecoMod').val(fechaEntrada);
+	           $('#fechaSalidaHuecoMod').val(fechaSalida);
+	           $('#formHuecoMod').show();
+	       };
+	       
+           entry.id = id;
+           entry.appendChild(document.createTextNode('(' + id + ') Espacio: ' + idEspacio + ' Entrada: ' + fechaEntrada + ' Salida: ' + fechaSalida));
+           entry.appendChild(aBorrar);
+           entry.appendChild(aModificar);
+           
+           $('#huecos').append(entry);
+		}
+            
+            
+		$(document).ready(function (){
+
+            $('#crearHueco').click(function(){
+                
+            	var sendInfo = {
+                    idEspacio: $('#idEspacioHueco').val(),
+                    fechaEntrada: $('#fechaEntradaHueco').val(),
+                    fechaSalida: $('#fechaSalidaHueco').val()
+                };
+                
+                $.ajax({
+                    url: 'rest/hueco/alta',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    type: 'POST',
+                    dataType: 'json',
+                    success: function(result) {
+                        
+                    	console.log(result.hueco);
+                        
+                    	loadHueco(result.hueco.id, result.hueco.idEspacio, result.hueco.fechaEntrada, result.hueco.fechaSalida);
+
+                        $('#fechaEntradaHueco').val('');
+                        $('#fechaSalidaHueco').val('');
+                        
+                        // Si el hueco creado es del espacio que estamos viendo, recargamos
+                        if (result.hueco.idEspacio === currentEspacioId) {
+                            cargarHuecosEspacio(currentEspacioId, currentEspacioName);
+                        }
+                    },
+                    error: function(jqXhr, textStatus, errorMessage){
+                        errorMessage = jqXhr.responseText;
+                        if (!errorMessage) 
+                        	console.log('Error desconocido al dar de alta hueco. Estado: ' + textStatus);
+                        
+                        alert("Error al crear hueco: " + errorMessage);
+                    },
+                    data: JSON.stringify(sendInfo)
+                });
+                
+                
+                $('#modificarHueco').click(function(){
+
+                    const sendInfo = {
+                        idEspacio: $('#idEspacioHuecoMod').val(),
+                        fechaEntrada: $('#fechaEntradaHuecoMod').val(),
+                        fechaSalida: $('#fechaSalidaHuecoMod').val()
+                    };
+
+                    $.ajax({
+                        url: 'rest/hueco/modificar/' + id, // Este endpoint aún no lo hemos creado en HuecoService
+                        type: 'PUT',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        dataType: 'json',
+                        success: function(result) {
+                            alert('Hueco modificado correctamente');
+                            
+                            document.getElementById(id).remove();
+                            
+                            loadHueco(result.hueco.id, result.hueco.idEspacio, result.hueco.fechaEntrada, result.hueco.fechaSalida);
+                            
+                            $('#formHuecoMod').hide();
+                            $('#idHuecoMod').val('');
+                            $('#idEspacioHuecoMod').val('');
+                            $('#fechaEntradaHuecoMod').val('');
+                            $('#fechaSalidaHuecoMod').val('');
+                            
+                            // Si el hueco modificado pertenece al espacio que estamos viendo, recarga
+                            if (result.hueco.idEspacio === currentEspacioId) {
+                                cargarHuecosEspacio(currentEspacioId, currentEspacioName);
+                            }
+                        },
+                        error: function(jqXhr, textStatus, errorMessage){
+                            errorMessage = jqXhr.responseText;
+                            if (!errorMessage) 
+                            	console.log('Error desconocido al modificar hueco. Estado: ' + textStatus);
+                            
+                            alert("Error al modificar hueco: " + errorMessage);
+                        },
+                        data: JSON.stringify(sendInfo)
+                    });
+                });
+            });
 		})
 		
 	</script>
@@ -309,7 +453,26 @@
 		Nuevo nombre espacio <input type=text id='nombreEspMod'>
 		<button id='modificarEspacio'>Modificar espacio</button>
 	</div>
-	
+
+	<div id="formCrearHueco" style="display: none">
+		<h3>Añadir Hueco al Espacio Actual</h3>
+		<input type="hidden" id="idEspacioHueco"> Fecha/Hora Entrada:
+		<input type="datetime-local" id="fechaEntradaHueco"><br>
+		Fecha/Hora Salida: <input type="datetime-local" id="fechaSalidaHueco"><br>
+		<button id="crearHueco">Añadir Hueco</button>
+	</div>
+
+	<div id="formHuecoMod" style="display: none; margin-top: 20px;">
+		<h3>Modificar Hueco</h3>
+		<input type="hidden" id="idHuecoMod"> <input type="hidden"
+			id="idEspacioHuecoMod"> Nueva Fecha/Hora Entrada: <input
+			type="datetime-local" id="fechaEntradaHuecoMod"><br>
+		Nueva Fecha/Hora Salida: <input type="datetime-local"
+			id="fechaSalidaHuecoMod"><br>
+		<button id="modificarHueco">Modificar Hueco</button>
+	</div>
+
+
 	<h3>Listado usuarios</h3>
 	<ul id='usuarios'></ul>
 	
