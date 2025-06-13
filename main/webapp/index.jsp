@@ -1,0 +1,185 @@
+<%@ page language='java' contentType='text/html; charset=UTF-8'
+    pageEncoding='UTF-8'%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>Home JSP</title>
+	<script type='text/javascript' src='js/jquery-1.12.4.min.js'></script>
+	
+	<script type='text/javascript'>
+		
+		// PARA USERS
+		function load(id, username, passwd) {
+			
+			var entry = document.createElement('li');
+			var aBorrar = document.createElement('a');
+			var linkTextB = document.createTextNode('  [Borrar]');
+			
+			aBorrar.appendChild(linkTextB);
+			
+			aBorrar.onclick = function(){
+				$.ajax({
+					url: 'rest/user/borrar/' + id,
+					type: 'DELETE',
+					dataType: 'json',
+					success: function(result) {
+						document.getElementById(id).remove();
+					},
+					error: function() {
+						console.log('Error al borrar usuario');
+					}
+				})
+			}
+			
+			var aModificar = document.createElement('a');
+			var linkTextM = document.createTextNode('  [Modificar]');
+			
+			aModificar.appendChild(linkTextM);
+			aModificar.onclick = function() {
+				$('#idUserMod').val(id);
+				$('#usernameUserMod').val(username);
+				$('#passwdUserMod').val(passwd);
+				
+				$('#formUserMod').show();
+			}
+			
+			entry.id = id;
+			entry.appendChild(document.createTextNode('(' + id + ') ' + username + ' | ' + passwd ));
+			entry.appendChild(aBorrar);
+			entry.appendChild(aModificar);
+			
+			$('#usuarios').append(entry);
+		}
+		
+		$(document).ready(function(){
+			
+			$('#crearUsuario').click(function(){
+				
+				var sendInfo = {
+					username: $('#usernameUser').val(),
+					passwd: $('#passwdUser').val()
+				}
+				
+				$.ajax({
+					url: 'rest/user/alta',
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json'
+					},
+					type: 'POST',
+					dataType: 'json',
+					success: function(result) {
+						console.log(result.user);
+						load(result.user.id, result.user.username, result.user.passwd);
+					},
+			    	error: function(jqXhr, textStatus, errorMessage){
+						errorMessage = jqXhr.responseText;
+						
+						if (!errorMessage)
+				    		console.log('Error desconocido al dar de alta al usuario. Estado: ' + textStatus);
+						
+						alert(errorMessage);
+					},
+					data: JSON.stringify(sendInfo)
+				})
+			})
+			
+			$('#modificarUsuario').click(function(){
+					
+				const id = $('#idUserMod').val();
+				
+				const sendInfo = {
+					username: $('#usernameUserMod').val(),
+					passwd: $('#passwdUserMod').val(),
+				}
+				
+				$.ajax({
+					url: 'rest/user/modificar/' + id,
+					type: 'PUT',
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json'
+					},
+					dataType: 'json',
+					success: function(result){
+						
+						alert('Usuario modificado');
+						document.getElementById(id).remove();
+						
+						load(result.user.id, result.user.username, result.user.passwd);
+						
+						$('#formUserMod').hide();
+						
+						$('#idUserMod').val('');
+						$('#usernameUserMod').val('');
+						$('#passwdUserMod').val('');
+					},
+			    	error: function(jqXhr, textStatus, errorMessage){
+						errorMessage = jqXhr.responseText;
+						
+						if (!errorMessage)
+				    		console.log('Error desconocido al dar de alta al usuario. Estado: ' + textStatus);
+						
+						alert(errorMessage);
+					},
+					data: JSON.stringify(sendInfo)
+				})	
+			})
+			
+			$.ajax({
+				url: 'rest/user/todos',	
+				type: 'GET',
+				dataType: 'json',
+				success: function(result) {
+					jQuery.each(result.users, function(i, val){
+						load(val.id, val.username, val.passwd);
+					})
+				}
+			})
+			
+		})
+	
+	</script>
+</head>
+<body>
+
+	<div>
+		<h3>Registro de usuarios</h3>
+		Username: <input type=text id='usernameUser'><br>
+		Password: <input type=text id='passwdUser'><br>
+		<button id='crearUsuario'>Registrar usuario</button>
+	</div>
+	
+	<div id='formUserMod' style='display: none'>
+		<h3>Modificar usuario</h3>
+		<input type=hidden id='idUserMod'>
+		Nuevo username: <input type=text id='usernameUserMod'><br>
+		Password: <input type=text id='passwdUserMod'><br>
+		<button id='modificarUsuario'>Modificar usuario</button>
+	</div>
+
+	<div>
+		<h3>Registro de espacios</h3>
+		Introduzca nombre del espacio a añadir: <input type=text id='nombreEsp'>
+		<button id='crearEspacio'>Registrar espacio</button>
+	</div>
+	
+	<div id='formEspMod' style='display: none'>
+		<h3>Modificar espacio</h3>
+		<input type=hidden id='idEspMod'>
+		Nuevo nombre espacio <input type=text id='nombreEspMod'>
+	</div>
+	
+	<h3>Listado usuarios</h3>
+	<ul id='usuarios'></ul>
+	
+	<br>
+	
+	<h3>Listado espacios</h3>
+	<ul id='espacios'></ul>
+	
+	
+
+</body>
+</html>
