@@ -30,7 +30,7 @@ public class EspacioService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getTodosEspacios() {
 		
-		System.out.println("GET ESPACIOS");
+		//System.out.println("GET ESPACIOS");
 
 		JSONObject jsonRespuesta = new JSONObject();
 
