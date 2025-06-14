@@ -4,149 +4,27 @@
 <html>
 <head>
 <meta charset='UTF-8'>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Home JSP</title>
-	<script type='text/javascript' src='js/jquery-1.12.4.min.js'></script>
+	<script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js'></script>
 	
 	<script type='text/javascript'>
-		
-		// -------- PARA USUARIOS --------
-		/*
-		function load(id, username, passwd) {
+
+		function displayMessage(message, isError = false) {
 			
-			var entry = document.createElement('li');
-			var aBorrar = document.createElement('a');
-			var linkTextB = document.createTextNode('  [Borrar]');
+			const messageDiv = document.getElementById('messageDisplay');
 			
-			aBorrar.appendChild(linkTextB);
-			
-			aBorrar.onclick = function(){
-				$.ajax({
-					url: 'rest/user/borrar/' + id,
-					type: 'DELETE',
-					dataType: 'json',
-					success: function(result) {
-						document.getElementById(id).remove();
-					},
-			    	error: function(jqXhr, textStatus, errorMessage){
-						errorMessage = jqXhr.responseText;
-						
-						if (!errorMessage)
-				    		console.log('Error desconocido al borrar usuario. Estado: ' + textStatus);
-						
-						alert(errorMessage);
-			    	}
-				})
-			}
-			
-			var aModificar = document.createElement('a');
-			var linkTextM = document.createTextNode('  [Modificar]');
-			
-			aModificar.appendChild(linkTextM);
-			aModificar.onclick = function() {
-				$('#idUserMod').val(id);
-				$('#usernameUserMod').val(username);
-				$('#passwdUserMod').val(passwd);
-				
-				$('#formUserMod').show();
-			}
-			
-			entry.id = id;
-			entry.appendChild(document.createTextNode('(' + id + ') ' + username + ' | ' + passwd ));
-			entry.appendChild(aBorrar);
-			entry.appendChild(aModificar);
-			
-			$('#usuarios').append(entry);
+			messageDiv.textContent = message;
+			messageDiv.style.color = isError ? 'red' : 'green';
+            messageDiv.style.fontWeight = 'bold';
+            
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.style.color = 'initial';
+                messageDiv.style.fontWeight = 'normal';
+            }, 5000);
 		}
-		
-		$(document).ready(function(){
-			
-			$('#crearUsuario').click(function(){
-				
-				var sendInfo = {
-					username: $('#usernameUser').val(),
-					passwd: $('#passwdUser').val()
-				}
-				
-				$.ajax({
-					url: 'rest/user/alta',
-					headers: {
-						'Accept': 'application/json',
-						'Content-Type': 'application/json'
-					},
-					type: 'POST',
-					dataType: 'json',
-					success: function(result) {
-						console.log(result.user);
-						load(result.user.id, result.user.username, result.user.passwd);
-					},
-			    	error: function(jqXhr, textStatus, errorMessage){
-						errorMessage = jqXhr.responseText;
-						
-						if (!errorMessage)
-				    		console.log('Error desconocido al dar de alta usuario. Estado: ' + textStatus);
-						
-						alert(errorMessage);
-					},
-					data: JSON.stringify(sendInfo)
-				})
-			})
-			
-			$('#modificarUsuario').click(function(){
-					
-				const id = $('#idUserMod').val();
-				
-				const sendInfo = {
-					username: $('#usernameUserMod').val(),
-					passwd: $('#passwdUserMod').val(),
-				}
-				
-				$.ajax({
-					url: 'rest/user/modificar/' + id,
-					type: 'PUT',
-					headers: {
-						'Accept': 'application/json',
-						'Content-Type': 'application/json'
-					},
-					dataType: 'json',
-					success: function(result){
-						
-						alert('Usuario modificado');
-						document.getElementById(id).remove();
-						
-						load(result.user.id, result.user.username, result.user.passwd);
-						
-						$('#formUserMod').hide();
-						
-						$('#idUserMod').val('');
-						$('#usernameUserMod').val('');
-						$('#passwdUserMod').val('');
-					},
-			    	error: function(jqXhr, textStatus, errorMessage){
-						errorMessage = jqXhr.responseText;
-						
-						if (!errorMessage)
-				    		console.log('Error desconocido al modificar usuario. Estado: ' + textStatus);
-						
-						alert(errorMessage);
-					},
-					data: JSON.stringify(sendInfo)
-				})	
-			})
-			
-			$.ajax({
-				url: 'rest/user/todos',	
-				type: 'GET',
-				dataType: 'json',
-				success: function(result) {
-					jQuery.each(result.users, function(i, val){
-						load(val.id, val.username, val.passwd);
-					})
-				}
-			})
-			
-		})
-		*/
-		
+
 		// -------- PARA ESPACIOS --------
 		function loadEspacio(id, name) {
 			
@@ -164,14 +42,16 @@
 					dataType: 'json',
 					success: function(result) {
 						document.getElementById(id).remove();
+                       
+						displayMessage('Espacio borrado correctamente.');
 					},
 			    	error: function(jqXhr, textStatus, errorMessage){
 						errorMessage = jqXhr.responseText;
 						
 						if (!errorMessage)
-				    		console.log('Error desconocido al borrar espacio. Estado: ' + textStatus);
+				    		console.error('Error desconocido al borrar espacio. Estado: ' + textStatus);
 						
-						alert("Error: " + errorMessage);
+						displayMessage("Error al borrar espacio: " + errorMessage, true);
 			    	}
 				});
 			};
@@ -185,6 +65,13 @@
 				$('#nombreEspMod').val(name);	
 				$('#formEspMod').show();
 			};
+
+            var aVerHuecos = document.createElement('a');
+            var linkTextV = document.createTextNode('  [Ver Huecos]');
+            aVerHuecos.appendChild(linkTextV);
+            aVerHuecos.onclick = function() {
+                cargarHuecoEspacio(id, name);
+            };
 			
 			entry.id = id;
 			
@@ -192,6 +79,7 @@
 			
 			entry.appendChild(aBorrar);
 			entry.appendChild(aModificar);
+            entry.appendChild(aVerHuecos);
 			
 			$('#espacios').append(entry);
 		}
@@ -213,16 +101,19 @@
 	                dataType: 'json',
 	                success: function(result) {
 	                    console.log(result.espacio);
+	                    
 	                    loadEspacio(result.espacio.id, result.espacio.name);
 	                    $('#nombreEsp').val('');
+                        
+	                    displayMessage('Espacio creado correctamente.');
 	                },
 			    	error: function(jqXhr, textStatus, errorMessage){
 						errorMessage = jqXhr.responseText;
 						
 						if (!errorMessage)
-				    		console.log('Error desconocido al dar de alta espacio. Estado: ' + textStatus);
+				    		console.error('Error desconocido al dar de alta espacio. Estado: ' + textStatus);
 						
-						alert("Error: " + errorMessage);
+						displayMessage("Error al crear espacio: " + errorMessage, true);
 			    	},
 	                data: JSON.stringify(sendInfo)
 	            });
@@ -245,14 +136,14 @@
 	                },
 	                dataType: 'json',
 	                success: function(result){
-	                    alert('Espacio modificado correctamente');
+	                    displayMessage('Espacio modificado correctamente.');
 	                    
 	                    document.getElementById(id).remove(); 
 	                    
 	                    loadEspacio(result.espacio.id, result.espacio.name);
 	                    
 	                    $('#formEspMod').hide();
-	                    
+	              		
 	                    $('#idEspMod').val('');
 	                    $('#nombreEspMod').val('');
 	                },
@@ -260,9 +151,9 @@
 						errorMessage = jqXhr.responseText;
 						
 						if (!errorMessage)
-				    		console.log('Error desconocido al modificar espacio. Estado: ' + textStatus);
+				    		console.error('Error desconocido al modificar espacio. Estado: ' + textStatus);
 						
-						alert("Error: " + errorMessage);
+						displayMessage("Error al modificar espacio: " + errorMessage, true);
 			    	},
 	                data: JSON.stringify(sendInfo)
 	            });
@@ -273,13 +164,22 @@
 				type: 'GET',
 				dataType: 'json',
 				success: function(result) {
-					jQuery.each(result.espacios, function(i, val){
-						loadEspacio(val.id, val.name);
-					})
+                    if (result.espacios) {
+                        jQuery.each(result.espacios, function(i, val){
+                            loadEspacio(val.id, val.name);
+                        });
+                    } else {
+                        console.log('No spaces found or result.espacios is undefined.');
+                    }
 				}
-			})
-			
-		})
+				/*
+                error: function(jqXhr, textStatus, errorMessage){
+                    console.error('Error al cargar todos los espacios: ' + textStatus, errorMessage);
+                    displayMessage("Error al cargar espacios: " + (jqXhr.responseText || errorMessage), true);
+                }
+				*/
+			});
+		});
 		
 		
 		// -------- PARA HUECOS --------
@@ -296,19 +196,27 @@
 			
 			$('#formCrearHueco').show();
 			$('#idEspacioHueco').val(idEspacio);
-			
+            $('#huecosSection').show();
+            
+            $('#formHuecoMod').hide();
+
 			$.ajax({
-				url: 'rest/espacio/' + 	idEspacio + '/huecos',
+				url: 'rest/hueco/espacio/' + idEspacio,
 				type: 'GET',
 				dataType: 'json',
                 success: function(result) {
+                    $('#huecos').empty();
                     
                     if (result.huecos && result.huecos.length > 0) { 
                         jQuery.each(result.huecos, function(i, val) {
-                            loadHueco(val.id, val.idEspacio, val.fechaEntrada, val.fechaSalida);
+                            
+                        	const fechaEntrada = val.fechaEntrada || '';
+                        	const fechaSalida = val.fechaSalida || '';
+                            
+                            
+                            loadHueco(val.id, val.idEspacio, fechaEntrada, fechaSalida);
                         });
-                    }
-                    else {
+                    } else {
                         $('#huecos').append('<li>No hay huecos registrados para este espacio.</li>');
                     }
                 },
@@ -316,12 +224,12 @@
 					errorMessage = jqXhr.responseText;
 					
 					if (!errorMessage)
-			    		console.log('Error desconocido al cargar huecos. Estado: ' + textStatus);
+			    		console.error('Error desconocido al cargar huecos. Estado: ' + textStatus);
 					
-					alert("Error: " + errorMessage);
+					displayMessage("Error al cargar huecos: " + errorMessage, true);
 		    	}
 				
-			})
+			});
 		}	
 		
 		
@@ -336,19 +244,24 @@
             aBorrar.onclick = function() {
                 
             	$.ajax({
-                    url: 'rest/hueco/borrar/' + id, // Este endpoint aún no lo hemos creado en HuecoService
+                    url: 'rest/hueco/borrar/' + id,
                     type: 'DELETE',
                     dataType: 'json',
                     success: function(result) {
                         document.getElementById(id).remove();
+                        displayMessage('Hueco borrado correctamente.');
+                        
+                        if (currentEspacioId) {
+                            cargarHuecoEspacio(currentEspacioId, currentEspacioName);
+                        }
                     },
 			    	error: function(jqXhr, textStatus, errorMessage){
 						errorMessage = jqXhr.responseText;
 						
 						if (!errorMessage)
-				    		console.log('Error desconocido al borrar hueco. Estado: ' + textStatus);
+				    		console.error('Error desconocido al borrar hueco. Estado: ' + textStatus);
 						
-						alert("Error: " + errorMessage);
+						displayMessage("Error al borrar hueco: " + errorMessage, true);
 			    	}
                 });
             };
@@ -359,7 +272,6 @@
 	       aModificar.appendChild(linkTextM);
 	       
 	       aModificar.onclick = function() {
-	           
 	    	   $('#idHuecoMod').val(id);
 	           $('#idEspacioHuecoMod').val(idEspacio);
 	           $('#fechaEntradaHuecoMod').val(fechaEntrada);
@@ -379,6 +291,9 @@
 		$(document).ready(function (){
 
             $('#crearHueco').click(function(){
+
+            	var fechaEntrada = $('#fechaEntradaHueco').val().replace(" ", "T");
+            	var fechaSalida = $('#fechaSalidaHueco').val().replace(" ", "T");
                 
             	var sendInfo = {
                     idEspacio: $('#idEspacioHueco').val(),
@@ -398,22 +313,21 @@
                         
                     	console.log(result.hueco);
                         
-                    	loadHueco(result.hueco.id, result.hueco.idEspacio, result.hueco.fechaEntrada, result.hueco.fechaSalida);
-
+                        displayMessage('Hueco creado correctamente.');
+                        
+                        if (result.hueco.idEspacio === currentEspacioId) {
+                            cargarHuecoEspacio(currentEspacioId, currentEspacioName);
+                        }
+                        
                         $('#fechaEntradaHueco').val('');
                         $('#fechaSalidaHueco').val('');
-                        
-                        // Si el hueco creado es del espacio que estamos viendo, recargamos
-                        if (result.hueco.idEspacio === currentEspacioId) {
-                            cargarHuecosEspacio(currentEspacioId, currentEspacioName);
-                        }
                     },
                     error: function(jqXhr, textStatus, errorMessage){
                         errorMessage = jqXhr.responseText;
                         if (!errorMessage) 
-                        	console.log('Error desconocido al dar de alta hueco. Estado: ' + textStatus);
+                        	console.error('Error desconocido al dar de alta hueco. Estado: ' + textStatus);
                         
-                        alert("Error al crear hueco: " + errorMessage);
+                        displayMessage("Error al crear hueco: " + errorMessage, true);
                     },
                     data: JSON.stringify(sendInfo)
                 });
@@ -431,7 +345,7 @@
                 };
 
                 $.ajax({
-                    url: 'rest/hueco/modificar/' + id, // Este endpoint aún no lo hemos creado en HuecoService
+                    url: 'rest/hueco/modificar/' + id,
                     type: 'PUT',
                     headers: {
                         'Accept': 'application/json',
@@ -439,29 +353,24 @@
                     },
                     dataType: 'json',
                     success: function(result) {
-                        alert('Hueco modificado correctamente');
-                        
-                        document.getElementById(id).remove();
-                        
-                        loadHueco(result.hueco.id, result.hueco.idEspacio, result.hueco.fechaEntrada, result.hueco.fechaSalida);
-                        
+                        displayMessage('Hueco modificado correctamente.');
+                                                
                         $('#formHuecoMod').hide();
                         $('#idHuecoMod').val('');
                         $('#idEspacioHuecoMod').val('');
                         $('#fechaEntradaHuecoMod').val('');
                         $('#fechaSalidaHuecoMod').val('');
                         
-                        // Si el hueco modificado pertenece al espacio que estamos viendo, recarga
                         if (result.hueco.idEspacio === currentEspacioId) {
-                            cargarHuecosEspacio(currentEspacioId, currentEspacioName);
+                            cargarHuecoEspacio(currentEspacioId, currentEspacioName);
                         }
                     },
                     error: function(jqXhr, textStatus, errorMessage){
                         errorMessage = jqXhr.responseText;
                         if (!errorMessage) 
-                        	console.log('Error desconocido al modificar hueco. Estado: ' + textStatus);
+                        	console.error('Error desconocido al modificar hueco. Estado: ' + textStatus);
                         
-                        alert("Error al modificar hueco: " + errorMessage);
+                        displayMessage("Error al modificar hueco: " + errorMessage, true);
                     },
                     data: JSON.stringify(sendInfo)
                 });
@@ -471,26 +380,7 @@
 	</script>
 </head>
 <body>
-		
-	<!-- 
-	<div>
-		<h3>Registro de usuarios</h3>
-		Username: <input type=text id='usernameUser'><br>
-		Password: <input type=text id='passwdUser'><br>
-		<button id='crearUsuario'>Registrar usuario</button>
-	</div>
-	
-	<div id='formUserMod' style='display: none'>
-		<h3>Modificar usuario</h3>
-		<input type=hidden id='idUserMod'>
-		Nuevo username: <input type=text id='usernameUserMod'><br>
-		Password: <input type=text id='passwdUserMod'><br>
-		<button id='modificarUsuario'>Modificar usuario</button>
-	</div>
-	
-	<h3>Listado usuarios</h3>
-	<ul id='usuarios'></ul>
-	 -->
+    <div id="messageDisplay" style="margin-bottom: 15px;"></div>
 
 	<div>
 		<h3>Registro de espacios</h3>
@@ -505,32 +395,34 @@
 		<button id='modificarEspacio'>Modificar espacio</button>
 	</div>
 
-	<div id="formCrearHueco" style="display: none">
-		<h3>Añadir Hueco al Espacio Actual</h3>
-		<input type="hidden" id="idEspacioHueco"> Fecha/Hora Entrada:
-		<input type="datetime-local" id="fechaEntradaHueco"><br>
-		Fecha/Hora Salida: <input type="datetime-local" id="fechaSalidaHueco"><br>
-		<button id="crearHueco">Añadir Hueco</button>
-	</div>
-
-	<div id="formHuecoMod" style="display: none; margin-top: 20px;">
-		<h3>Modificar Hueco</h3>
-		<input type="hidden" id="idHuecoMod"> <input type="hidden"
-			id="idEspacioHuecoMod"> Nueva Fecha/Hora Entrada: <input
-			type="datetime-local" id="fechaEntradaHuecoMod"><br>
-		Nueva Fecha/Hora Salida: <input type="datetime-local"
-			id="fechaSalidaHuecoMod"><br>
-		<button id="modificarHueco">Modificar Hueco</button>
-	</div>
-
-
-	
 	<br>
 	
 	<h3>Listado espacios</h3>
 	<ul id='espacios'></ul>
 	
-	
+	<br>
+
+    <div id="huecosSection" style="display: none;">
+        <div id="formCrearHueco" style="margin-top: 20px;">
+            <h3>Añadir Hueco al Espacio Actual</h3>
+            <input type="hidden" id="idEspacioHueco">
+            Fecha/Hora Entrada: <input type="datetime-local" id="fechaEntradaHueco"><br>
+            Fecha/Hora Salida: <input type="datetime-local" id="fechaSalidaHueco"><br>
+            <button id="crearHueco">Añadir Hueco</button>
+        </div>
+
+        <div id="formHuecoMod" style="display: none; margin-top: 20px;">
+            <h3>Modificar Hueco</h3>
+            <input type="hidden" id="idHuecoMod">
+            <input type="hidden" id="idEspacioHuecoMod">
+            Nueva Fecha/Hora Entrada: <input type="datetime-local" id="fechaEntradaHuecoMod"><br>
+            Nueva Fecha/Hora Salida: <input type="datetime-local" id="fechaSalidaHuecoMod"><br>
+            <button id="modificarHueco">Modificar Hueco</button>
+        </div>
+
+        <h3 id="tituloHuecos"></h3>
+        <ul id='huecos'></ul>
+    </div>
 
 </body>
 </html>

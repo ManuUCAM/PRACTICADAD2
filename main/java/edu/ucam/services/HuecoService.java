@@ -3,11 +3,12 @@ package edu.ucam.services;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.time.DateTimeException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Hashtable;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import edu.ucam.entity.Espacio;
@@ -23,217 +24,178 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-@Path("/")
+@Path("/hueco")
 public class HuecoService {
 
-	public static Hashtable<String, Hueco> tablaHuecos = new Hashtable<String, Hueco>();
+	public static Hashtable<String, Hueco> tablaHuecos = new Hashtable<>();
 	public static int siguienteID = 1;
-	
+
+	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+
 	@POST
-	@Path("/hueco/alta")
+	@Path("/alta")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response crearHueco(InputStream incomingData) {
-		
 		System.out.println("Registrar hueco");
-		
 		StringBuilder sb = new StringBuilder();
-		
+
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(incomingData))) {
-			
 			String line;
-			
-			while ((line = in.readLine()) != null)
-				sb.append(line);
-		
-		}
-		catch (Exception e) {
+			while ((line = in.readLine()) != null) sb.append(line);
+		} catch (Exception e) {
 			return Response.status(400).entity("JSON mal formado").build();
 		}
-		
+
 		JSONObject json = new JSONObject(sb.toString());
-		
 		if (!json.has("idEspacio") || !json.has("fechaEntrada") || !json.has("fechaSalida")) {
 			return Response.status(400).entity("idEspacio, fechaEntrada y fechaSalida son obligatorios").build();
 		}
-		
+
 		String idEspacio = json.getString("idEspacio").trim();
 		String fechaEntradaStr = json.getString("fechaEntrada").trim();
 		String fechaSalidaStr = json.getString("fechaSalida").trim();
-		
-		// Validar que espacio exista
+
 		if (!EspacioService.tablaEspacios.containsKey(idEspacio))
 			return Response.status(404).entity("El espacio no existe").build();
-		
-		LocalDateTime fechaEntrada;
-		LocalDateTime fechaSalida;
-		
+
+		LocalDateTime fechaEntrada, fechaSalida;
 		try {
-			fechaEntrada = LocalDateTime.parse(fechaEntradaStr);
-			fechaSalida = LocalDateTime.parse(fechaSalidaStr);
-		}
-		catch (DateTimeParseException e) {
+			fechaEntrada = LocalDateTime.parse(fechaEntradaStr, FORMATTER);
+			fechaSalida = LocalDateTime.parse(fechaSalidaStr, FORMATTER);
+		} catch (DateTimeParseException e) {
 			return Response.status(400).entity("Formato de fecha incorrecto. (YYYY-MM-DDTHH:mm)").build();
 		}
-		
-		//Validar fecha de entrada sea anterior a salida
-		if (fechaEntrada.isAfter(fechaSalida) || fechaEntrada.isEqual(fechaSalida))
-			return Response.status(400).entity("La fecha de entrada debe ser anterior a la fecha de salida.").build();
-				
-		String huecoId = "HUE" + siguienteID;
 
+		if (!fechaEntrada.isBefore(fechaSalida))
+			return Response.status(400).entity("La fecha de entrada debe ser anterior a la fecha de salida.").build();
+
+		String huecoId = "HUE" + siguienteID++;
 		Hueco hueco = new Hueco(huecoId, idEspacio, fechaEntrada, fechaSalida);
-		
-		tablaHuecos.put(hueco.getId(), hueco);
-		siguienteID++;
-		
+		tablaHuecos.put(huecoId, hueco);
+
 		JSONObject jsonHueco = new JSONObject();
-		jsonHueco.put("id", hueco.getId());
-		jsonHueco.put("idEspacio", hueco.getIdEspacio());
-		jsonHueco.put("fechaEntrada", hueco.getFechaEntrada().toString());
-		jsonHueco.put("fechaSalida", hueco.getFechaSalida().toString());
-		
+		jsonHueco.put("id", huecoId);
+		jsonHueco.put("idEspacio", idEspacio);
+		jsonHueco.put("fechaEntrada", fechaEntrada.toString());
+		jsonHueco.put("fechaSalida", fechaSalida.toString());
+
 		JSONObject respuesta = new JSONObject();
 		respuesta.put("hueco", jsonHueco);
-		
-		System.out.println(respuesta.toString());
-		
+
 		return Response.status(201).entity(respuesta.toString()).build();
 	}
-	
-	
-	@PUT
-    @Path("/hueco/modificar/{id}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response modificarHueco(@PathParam("id") String id, InputStream incomingData) {
-        System.out.println("Modificar hueco: " + id);
-        StringBuilder sb = new StringBuilder();
 
-        // Leer el JSON de la entrada
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(incomingData))) {
-            String line;
-            while ((line = in.readLine()) != null)
-                sb.append(line);
-        } catch (Exception e) {
-            return Response.status(400).entity("JSON mal formado").build();
-        }
+	@PUT
+	@Path("/modificar/{id}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response modificarHueco(@PathParam("id") String id, InputStream incomingData) {
+		System.out.println("Modificar hueco: " + id);
+		StringBuilder sb = new StringBuilder();
+
+		try (BufferedReader in = new BufferedReader(new InputStreamReader(incomingData))) {
+			String line;
+			while ((line = in.readLine()) != null) sb.append(line);
+		} catch (Exception e) {
+			return Response.status(400).entity("JSON mal formado").build();
+		}
+
+		Hueco huecoEncontrado = tablaHuecos.get(id);
+		if (huecoEncontrado == null)
+			return Response.status(404).entity("Hueco no encontrado").build();
 
 		JSONObject json = new JSONObject(sb.toString());
-		
-		Hueco huecoEncontrado = tablaHuecos.get(id);
-		
-		if (huecoEncontrado == null) 
-			return Response.status(404).entity("Hueco no encontrado").build();
-		
 		if (!json.has("idEspacio") || !json.has("fechaEntrada") || !json.has("fechaSalida")) {
 			return Response.status(400).entity("idEspacio, fechaEntrada y fechaSalida son obligatorios").build();
 		}
-		
+
 		String idEspacio = json.getString("idEspacio").trim();
 		String fechaEntradaStr = json.getString("fechaEntrada").trim();
 		String fechaSalidaStr = json.getString("fechaSalida").trim();
-		
-		// Validar que espacio exista
+
 		if (!EspacioService.tablaEspacios.containsKey(idEspacio))
 			return Response.status(404).entity("El espacio no existe").build();
-		
-		LocalDateTime fechaEntrada;
-		LocalDateTime fechaSalida;
-		
+
+		LocalDateTime fechaEntrada, fechaSalida;
 		try {
-			fechaEntrada = LocalDateTime.parse(fechaEntradaStr);
-			fechaSalida = LocalDateTime.parse(fechaSalidaStr);
-		}
-		catch (DateTimeParseException e) {
+			fechaEntrada = LocalDateTime.parse(fechaEntradaStr, FORMATTER);
+			fechaSalida = LocalDateTime.parse(fechaSalidaStr, FORMATTER);
+		} catch (DateTimeParseException e) {
 			return Response.status(400).entity("Formato de fecha incorrecto. (YYYY-MM-DDTHH:mm)").build();
 		}
-		
-		//Validar fecha de entrada sea anterior a salida
-		if (fechaEntrada.isAfter(fechaSalida) || fechaEntrada.isEqual(fechaSalida))
+
+		if (!fechaEntrada.isBefore(fechaSalida))
 			return Response.status(400).entity("La fecha de entrada debe ser anterior a la fecha de salida.").build();
-		
+
 		huecoEncontrado.setIdEspacio(idEspacio);
 		huecoEncontrado.setFechaEntrada(fechaEntrada);
 		huecoEncontrado.setFechaSalida(fechaSalida);
-		
+
 		JSONObject jsonHueco = new JSONObject();
-		
 		jsonHueco.put("id", huecoEncontrado.getId());
-		jsonHueco.put("idEspacio", huecoEncontrado.getIdEspacio());
-		jsonHueco.put("fechaEntrada", huecoEncontrado.getFechaEntrada().toString());
-		jsonHueco.put("fechaSalida", huecoEncontrado.getFechaSalida().toString());
-		
+		jsonHueco.put("idEspacio", idEspacio);
+		jsonHueco.put("fechaEntrada", fechaEntrada.toString());
+		jsonHueco.put("fechaSalida", fechaSalida.toString());
+
 		JSONObject respuesta = new JSONObject();
 		respuesta.put("hueco", jsonHueco);
-		
-		System.out.println(respuesta.toString());
-		
+
 		return Response.status(201).entity(respuesta.toString()).build();
-        
 	}
-	
+
 	@DELETE
-	@Path("/hueco/borrar/{id}")
-	@Produces(MediaType.APPLICATION_JSON)	
+	@Path("/borrar/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
 	public Response borrarHueco(@PathParam("id") String id) {
-		System.out.println("Borrar Hueco");
-		
-		Hueco huecoEncontrado = tablaHuecos.remove(id);
-		
-		if (huecoEncontrado == null)
+		System.out.println("Borrar Hueco: " + id);
+		Hueco eliminado = tablaHuecos.remove(id);
+		if (eliminado == null)
 			return Response.status(404).entity("Hueco no encontrado").build();
-		
-		return Response.status(200).entity(true).build();
+		return Response.ok(true).build();
 	}
-	
+
 	@GET
-	@Path("/espacio/{idEspacio}/huecos")
+	@Path("/espacio/{idEspacio}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getHuecosDeEspacio(@PathParam("idEspacio") String idEspacio) {
-		
 		System.out.println("GET Huecos de espacio: " + idEspacio);
-		
 		if (!EspacioService.tablaEspacios.containsKey(idEspacio))
 			return Response.status(404).entity("Espacio no encontrado").build();
-		
-		JSONObject jsonRespuesta = new JSONObject();
-		
+
+		JSONArray huecosArray = new JSONArray();
 		for (Hueco hueco : tablaHuecos.values()) {
 			if (hueco.getIdEspacio().equals(idEspacio)) {
-
 				JSONObject jsonHueco = new JSONObject();
-				
 				jsonHueco.put("id", hueco.getId());
 				jsonHueco.put("idEspacio", hueco.getIdEspacio());
-				jsonHueco.put("fechaEntrada", hueco.getFechaEntrada());
-				jsonHueco.put("fechaSalida", hueco.getFechaSalida());
-				
-				jsonRespuesta.append("huecos", jsonHueco);
+				jsonHueco.put("fechaEntrada", hueco.getFechaEntrada().toString());
+				jsonHueco.put("fechaSalida", hueco.getFechaSalida().toString());
+				huecosArray.put(jsonHueco);
 			}
 		}
-		return Response.status(200).entity(jsonRespuesta.toString()).build();
+
+		JSONObject jsonRespuesta = new JSONObject();
+		jsonRespuesta.put("huecos", huecosArray);
+		return Response.ok(jsonRespuesta.toString()).build();
 	}
-	
+
 	@GET
-	@Path("/hueco/todos")
+	@Path("/todos")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getHuecosTodos() {
-		System.out.println("GET HUECOS");
-		
-		JSONObject jsonRespuesta = new JSONObject();
-		
+		System.out.println("GET HUECOS TODOS");
+		JSONArray huecosArray = new JSONArray();
 		for (Hueco hueco : tablaHuecos.values()) {
 			JSONObject jsonHueco = new JSONObject();
-			
 			jsonHueco.put("id", hueco.getId());
 			jsonHueco.put("idEspacio", hueco.getIdEspacio());
-			jsonHueco.put("fechaEntrada", hueco.getFechaEntrada());
-			jsonHueco.put("fechaSalida", hueco.getFechaSalida());
-			
-			jsonRespuesta.append("huecos", jsonHueco);
+			jsonHueco.put("fechaEntrada", hueco.getFechaEntrada().toString());
+			jsonHueco.put("fechaSalida", hueco.getFechaSalida().toString());
+			huecosArray.put(jsonHueco);
 		}
-		
-		return Response.status(200).entity(jsonRespuesta.toString()).build();
+		JSONObject jsonRespuesta = new JSONObject();
+		jsonRespuesta.put("huecos", huecosArray);
+		return Response.ok(jsonRespuesta.toString()).build();
 	}
 }
