@@ -280,7 +280,10 @@
 	       };
 	       
            entry.id = id;
-           entry.appendChild(document.createTextNode('(' + id + ') Espacio: ' + idEspacio + ' Entrada: ' + fechaEntrada + ' Salida: ' + fechaSalida));
+           const entradaFormatted = fechaEntrada.replace('T', ' / ');
+           const salidaFormatted = fechaSalida.replace('T', ' / ');
+           entry.appendChild(document.createTextNode('(' + id + ') Espacio: ' + idEspacio + ' Entrada: ' + entradaFormatted + ' Salida: ' + salidaFormatted));
+ 
            entry.appendChild(aBorrar);
            entry.appendChild(aModificar);
            

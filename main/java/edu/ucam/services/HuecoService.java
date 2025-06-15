@@ -31,6 +31,21 @@ public class HuecoService {
 	public static int siguienteID = 1;
 
 	private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+	
+	private boolean haySolapamiento(String idEspacio, LocalDateTime nuevaEntrada, LocalDateTime nuevaSalida, String idExcluir) {
+		for (Hueco h : tablaHuecos.values()) {
+			if (!h.getIdEspacio().equals(idEspacio)) continue;
+			if (idExcluir != null && h.getId().equals(idExcluir)) continue;
+
+			LocalDateTime existenteEntrada = h.getFechaEntrada();
+			LocalDateTime existenteSalida = h.getFechaSalida();
+
+			boolean solapa = !(nuevaSalida.isBefore(existenteEntrada) || nuevaEntrada.isAfter(existenteSalida));
+			if (solapa) return true;
+		}
+		return false;
+	}
+
 
 	@POST
 	@Path("/alta")
@@ -69,6 +84,10 @@ public class HuecoService {
 
 		if (!fechaEntrada.isBefore(fechaSalida))
 			return Response.status(400).entity("La fecha de entrada debe ser anterior a la fecha de salida.").build();
+		
+		if (haySolapamiento(idEspacio, fechaEntrada, fechaSalida, null)) {
+			return Response.status(409).entity("El hueco se solapa con otro ya existente en el mismo espacio.").build();
+		}
 
 		String huecoId = "HUE" + siguienteID++;
 		Hueco hueco = new Hueco(huecoId, idEspacio, fechaEntrada, fechaSalida);
@@ -127,6 +146,10 @@ public class HuecoService {
 
 		if (!fechaEntrada.isBefore(fechaSalida))
 			return Response.status(400).entity("La fecha de entrada debe ser anterior a la fecha de salida.").build();
+		
+		if (haySolapamiento(idEspacio, fechaEntrada, fechaSalida, id)) {
+			return Response.status(409).entity("El nuevo rango de tiempo se solapa con otro hueco en el mismo espacio.").build();
+		}
 
 		huecoEncontrado.setIdEspacio(idEspacio);
 		huecoEncontrado.setFechaEntrada(fechaEntrada);
